@@ -1,0 +1,3 @@
+[submodule "csl"]
+	path = csl
+	url = git@github.com:mukymuk/max32620.git
