@@ -129,7 +129,6 @@ int UART_Init(mxc_uart_regs_t *uart, const uart_cfg_t *cfg, const sys_cfg_uart_t
     tx_states[uart_num] = NULL;
 
     // Drain FIFOs and enable UART
-    uart->ctrl = 0;
     uart->ctrl = (MXC_F_UART_CTRL_UART_EN | MXC_F_UART_CTRL_TX_FIFO_EN |
                   MXC_F_UART_CTRL_RX_FIFO_EN | 
                   (UART_RXFIFO_USABLE <<  MXC_F_UART_CTRL_RTS_LEVEL_POS));
