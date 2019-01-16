@@ -100,6 +100,10 @@ cirbuf_t * board_serial_device( board_serial_device_t id )
     return (cirbuf_t*)0;
 }
 
+// UART0 - PMOD PORT0 
+// UART1 - DEBUG HEADER (no CTS/RTS)
+// UART2 - HEADER
+// UART3 - HEADER 
 void board_init(void)
 {
 

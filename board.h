@@ -1,7 +1,7 @@
 #ifndef __BOARD_H__
 #define __BOARD_H__
 
-#include ".\uart.h"
+#include "uartdrv.h"
 
 void board_init(void);
 
