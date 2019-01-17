@@ -74,7 +74,7 @@ void cdcacm_lock(cirbuf_t * p_cirbuf)
 typedef enum
 {
     board_serial_device_uart0,
-    board_serial_device_uart1, 
+    board_serial_device_uart1,
     board_serial_device_uart2,
     board_serial_device_uart3,
     board_serial_device_usb
@@ -100,10 +100,8 @@ cirbuf_t * board_serial_device( board_serial_device_t id )
     return (cirbuf_t*)0;
 }
 
-// UART0 - PMOD PORT0 
-// UART1 - DEBUG HEADER (no CTS/RTS)
-// UART2 - HEADER
-// UART3 - HEADER 
+
+
 void board_init(void)
 {
 
@@ -114,6 +112,9 @@ void board_init(void)
         board_led( i, board_led_off );
         GPIO_Config( &s_gpio_cfg_led[i] );
     }
+
+
+
     for(i=0;i<ARRAY_COUNT(s_uart_buffer);i++)
     {
         cirbuf_init( &s_uart_buffer[i].cirbuf, s_uart_buffer[i].buffer, sizeof(s_uart_buffer[i].buffer), uart_update_tx, uart_update_rx, uart_lock );

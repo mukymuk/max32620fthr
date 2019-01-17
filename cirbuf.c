@@ -4,7 +4,8 @@
 // This module provides generic a circular buffer support
 
 void cirbuf_init( cirbuf_t * p_cirbuf, void *pv_buffer, uint32_t size,
-                  cirbuf_write_update_t p_write_update, cirbuf_read_update_t p_read_update, cirbuf_lock_t p_lock )
+                  cirbuf_write_update_t p_write_update, cirbuf_read_
+                  update_t p_read_update, cirbuf_lock_t p_lock )
 {
     p_cirbuf->read_ndx = 0;
     p_cirbuf->write_ndx = 0;
