@@ -2,11 +2,11 @@
 #define __UART_H__
 
 #include "clkman.h"
-#include "cirbuf.h"
+#include "cbuf.h"
 
 typedef struct
 {
-    cirbuf_t    cirbuf;
+    cbuf_t      cirbuf;
     uint32_t    uart_ndx;
     uint32_t    pmu_ndx;
 }

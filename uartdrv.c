@@ -3,15 +3,15 @@
 #include "clkman_regs.h"
 #include "uart.h"
 
-static void write_update_cb( cirbuf_t *p_cirbuf )
+static void write_update_cb( cbuf_t *p_cbuf )
 {
-    uartdrv_t *p_uart = (uartdrv_t*)p_cirbuf;
+    uartdrv_t *p_uart = (uartdrv_t*)p_cbuf;
     NVIC_EnableIRQ( MXC_UART_GET_IRQ(p_uart->uart_ndx) );
 }
 
-static void lock_cb( cirbuf_t *p_cirbuf )
+static void lock_cb( cbuf_t *p_cbuf )
 {
-    uartdrv_t *p_uart = (uartdrv_t*)p_cirbuf;
+    uartdrv_t *p_uart = (uartdrv_t*)p_cbuf;
     NVIC_DisableIRQ( MXC_UART_GET_IRQ(p_uart->uart_ndx) );
 }
 
@@ -38,7 +38,7 @@ void uartdrv_init( uartdrv_t * p_uart, const uartdrv_config_t * p_uartdrv_config
     p_uart->pmu_ndx = p_uartdrv_config->pmu_ndx;
     p_uart->uart_ndx = p_uartdrv_config->uart_ndx;
 
-    cirbuf_init( &p_uart->cirbuf, p_uartdrv_config->buffer, p_uartdrv_config->size, write_update_cb, NULL, lock_cb );
+    cbuf_init( &p_uart->cbuf, p_uartdrv_config->buffer, p_uartdrv_config->size, write_update_cb, NULL, lock_cb );
 
     if( p_uartdrv_config->config & UARTDRV_CONFIG_VDDOIH )
     {
