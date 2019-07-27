@@ -3,7 +3,8 @@
 
 struct _cbuf_t;
 
-typedef void (*cbuf_sync_t)( struct _cbuf_t *p_cbuf );
+typedef void (*cbuf_sync_t)( void * pv );
+typedef void (*cbuf_advise_t)( uint32_t size );
 
 typedef struct _cbuf_t
 {
@@ -12,9 +13,12 @@ typedef struct _cbuf_t
     int32_t                 read_ndx;
     uint8_t *               buffer;
     int32_t                 size : 31;
-    uint32_t                write_lock;
+    uint32_t                write_lock : 1;
     cbuf_sync_t             lock;
     cbuf_sync_t             unlock;
+    void *                  context;
+    cbuf_advise_t           read_advise;
+    cbuf_advise_t           write_advise;
 }
 cbuf_t;
 
@@ -27,8 +31,9 @@ void cbuf_write_release( cbuf_t * p_cbuf, uint32_t size );
 uint32_t cbuf_read( cbuf_t * p_cbuf, void *pv, uint32_t size );
 uint32_t cbuf_read_aquire( cbuf_t * p_cbuf, void ** ppv );
 void cbuf_read_release( cbuf_t * p_cbuf, uint32_t size );
-void cbuf_read_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock );
-void cbuf_write_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock );
+void cbuf_read_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock, void * pv );
+void cbuf_write_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock, void * pv );
+void cbuf_advise( cbuf_t * p_cbuf, cbuf_advise_t read, cbuf_advise_t write );
 
 #define CBUF(name,size) typedef struct\
 {\

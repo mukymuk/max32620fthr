@@ -15,7 +15,7 @@ uint32_t cbuf_write_string( cbuf_t * p_cbuf, const char *p_str )
     uint32_t ndx = 0;
 
     if( p_cbuf->write_lock )
-        p_cbuf->lock(p_cbuf);
+        p_cbuf->lock(p_cbuf->context);
 
     while( p_str[ndx] && p_cbuf->free )
     {
@@ -25,7 +25,10 @@ uint32_t cbuf_write_string( cbuf_t * p_cbuf, const char *p_str )
         p_cbuf->free--;
     }
     if( p_cbuf->write_lock )
-        p_cbuf->unlock(p_cbuf);
+        p_cbuf->unlock(p_cbuf->context);
+    if( p_cbuf->write_advise )
+        p_cbuf->write_advise(ndx);
+
     return ndx;
 
 }
@@ -39,7 +42,7 @@ uint32_t cbuf_write( cbuf_t * p_cbuf, const void *pv, uint32_t size )
     const uint8_t * p = (const uint8_t *)pv;
 
     if( p_cbuf->write_lock )
-        p_cbuf->lock(p_cbuf);
+        p_cbuf->lock(p_cbuf->context);
 
     while( size && p_cbuf->free )
     {
@@ -50,7 +53,10 @@ uint32_t cbuf_write( cbuf_t * p_cbuf, const void *pv, uint32_t size )
         size--;
     }
     if( p_cbuf->write_lock )
-        p_cbuf->unlock(p_cbuf);
+        p_cbuf->unlock(p_cbuf->context);
+    if( p_cbuf->write_advise )
+        p_cbuf->write_advise(size);
+
     return ndx;
 }
 
@@ -65,11 +71,15 @@ uint32_t cbuf_write_aquire( cbuf_t * p_cbuf, void **ppv )
     // '*ppv' receives a pointer to the block
     // return number of bytes actually reserved
 
-    if( p_cbuf->write_lock )
-        p_cbuf->lock(p_cbuf);
+    uint32_t avail = p_cbuf->size - p_cbuf->free;
+    if( avail )
+    {
+        if( p_cbuf->write_lock )
+            p_cbuf->lock(p_cbuf->context);
 
-    *ppv = (void*)&p_cbuf->buffer[ p_cbuf->write_ndx ];
-    return p_cbuf->size - p_cbuf->write_ndx;
+        *ppv = (void*)&p_cbuf->buffer[ p_cbuf->write_ndx ];
+    }
+    return avail;
 
 }
 
@@ -83,7 +93,9 @@ void cbuf_write_release( cbuf_t * p_cbuf, uint32_t size )
         p_cbuf->write_ndx = 0;
 
     if( p_cbuf->write_lock )
-        p_cbuf->unlock(p_cbuf);
+        p_cbuf->unlock(p_cbuf->context);
+    if( p_cbuf->write_advise )
+        p_cbuf->write_advise(size);
 }
 
 uint32_t cbuf_read( cbuf_t * p_cbuf, void *pv, uint32_t size )
@@ -96,7 +108,7 @@ uint32_t cbuf_read( cbuf_t * p_cbuf, void *pv, uint32_t size )
     uint8_t * p = (uint8_t *)pv;
 
     if( !p_cbuf->write_lock )
-        p_cbuf->lock(p_cbuf);
+        p_cbuf->lock(p_cbuf->context);
 
     while( size && (p_cbuf->free < p_cbuf->size) )
     {
@@ -109,7 +121,9 @@ uint32_t cbuf_read( cbuf_t * p_cbuf, void *pv, uint32_t size )
     }
 
     if( !p_cbuf->write_lock )
-        p_cbuf->unlock(p_cbuf);
+        p_cbuf->unlock(p_cbuf->context);
+    if( p_cbuf->read_advise )
+        p_cbuf->read_advise(size);
 
     return read_count;
 }
@@ -120,37 +134,48 @@ uint32_t cbuf_read_aquire( cbuf_t * p_cbuf, void ** ppv )
     // '*ppv' receives a pointer to the block
     // return number of bytes reserved
 
-    if( !p_cbuf->write_lock )
-        p_cbuf->lock(p_cbuf);
+    uint32_t avail = p_cbuf->size - p_cbuf->free;
 
-    *ppv = (void*)&p_cbuf->buffer[ p_cbuf->read_ndx ];
-    return p_cbuf->size - p_cbuf->read_ndx;
+    if( avail )
+    {
+        if( !p_cbuf->write_lock )
+            p_cbuf->lock(p_cbuf->context);
+
+        *ppv = (void*)&p_cbuf->buffer[ p_cbuf->read_ndx ];
+    }
+    return avail;
 }
 
 void cbuf_read_release( cbuf_t * p_cbuf, uint32_t size )
 {
     // release 'size' bytes in circular buffer previously aquired via cbuf_read_aquire()
     p_cbuf->read_ndx += size;
-    if( p_cbuf->read_ndx >= size )
-        p_cbuf->read_ndx = 0;
     p_cbuf->free += size;
 
     if( !p_cbuf->write_lock )
-        p_cbuf->unlock(p_cbuf);
-
+        p_cbuf->unlock(p_cbuf->context);
+    if( p_cbuf->read_advise )
+        p_cbuf->read_advise(size);
 }
 
-void cbuf_read_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock )
+void cbuf_read_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock, void *pv_context )
 {
     p_cbuf->lock = p_lock;
     p_cbuf->unlock = p_unlock;
     p_cbuf->write_lock = false;
+    p_cbuf->context = pv_context;
 }
 
-void cbuf_write_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock )
+void cbuf_write_lock( cbuf_t * p_cbuf, cbuf_sync_t p_lock, cbuf_sync_t p_unlock, void *pv_context )
 {
     p_cbuf->lock = p_lock;
     p_cbuf->unlock = p_unlock;
     p_cbuf->write_lock = true;
+    p_cbuf->context = pv_context;
 }
 
+void cbuf_advise( cbuf_t * p_cbuf, cbuf_advise_t read_advise, cbuf_advise_t write_advise )
+{
+    p_cbuf->write_advise = write_advise;
+    p_cbuf->read_advise = read_advise;
+}

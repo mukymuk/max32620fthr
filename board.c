@@ -1,5 +1,6 @@
 #include "global.h"
 #include "board.h"
+#include "mc.h"
 #include "gpio.h"
 #include "mxc_sys.h"
 #include "tmr.h"
@@ -57,9 +58,12 @@ void board_init(void)
     TMR_Init( MXC_TMR4, TMR_PRESCALE_DIV_2_0, &s_gpio_cfg_motor_step );
     static const tmr32_cfg_t tmr32_cfg =
     {
-        .mode = TMR32_MODE_CONTINUOUS,
+        .mode = TMR32_MODE_PWM
     };
     TMR32_Config( MXC_TMR4, &tmr32_cfg );
+    TMR32_SetCount(MXC_TMR4,1);
+    TMR32_EnableINT(MXC_TMR4);
+ //   NVIC_EnableIRQ(TMR4_0_IRQn);
 
 }
 
@@ -97,16 +101,26 @@ void board_snd( uint8_t ndx, int32_t freq_hz )
     if( freq_hz )
     {
         uint32_t period = SystemCoreClock / (freq_hz << 1);
+
         TMR32_SetCompare( MXC_TMR4, period );
-        TMR32_SetCount(MXC_TMR4,0);
+        TMR32_SetDuty( MXC_TMR4, period >> 1 );
         TMR32_Start( MXC_TMR4 );
     }
     else
+    {
         TMR32_Stop( MXC_TMR4 );
-
+        TMR32_SetCount(MXC_TMR4,1);
+    }
 }
 
 void board_sleep( void )
 {
     LP_EnterLP2();
 }
+
+void TMR4_IRQHandler( void )
+{
+    mc_timer_isr(0);
+}
+
+

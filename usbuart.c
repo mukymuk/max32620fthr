@@ -390,6 +390,8 @@ static cbuf_t *s_cbuf_read;
 static cbuf_t *s_cbuf_write;
 static uint32_t s_read_overflow;
 
+static bool s_ining;
+
 usb_buffer_t * const sie_bulk_out = &s_usb_sie.endpoint[ENDPOINT_ACM_BULK_OUT-1].buffer[0];
 usb_buffer_t * const sie_bulk_in = &s_usb_sie.endpoint[ENDPOINT_ACM_BULK_IN-1].buffer[0];
 usb_buffer_t * const sie_ctrl_out = &s_usb_sie.endpoint0.out.buffer[0];
@@ -404,16 +406,6 @@ static void inline usb_ack( uint8_t ep )
 {
     MXC_USB->ep[ep] |= MXC_F_USB_EP_ST_ACK;
 }
-
-static void lock( cbuf_t *p_cbuf )
-{
-    if( p_cbuf == s_cbuf_write )
-        MXC_USB->ep[ENDPOINT_ACM_BULK_IN] &= ~MXC_F_USB_EP_INT_EN;
-    else
-        MXC_USB->ep[ENDPOINT_ACM_BULK_OUT] &= ~MXC_F_USB_EP_INT_EN;
-}
-
-static bool s_ining;
 
 static void write_bulk_in( void )
 {
@@ -430,16 +422,25 @@ static void write_bulk_in( void )
     usb_ack(ENDPOINT_ACM_BULK_IN);
 }
 
-static void unlock( cbuf_t *p_cbuf )
+static void write_lock( void * pv )
 {
-    if( p_cbuf == s_cbuf_write )
-    {
-        if( !s_ining )
-            write_bulk_in();
-        MXC_USB->ep[ENDPOINT_ACM_BULK_IN] |= MXC_F_USB_EP_INT_EN;
-    }
-    else
-        MXC_USB->ep[ENDPOINT_ACM_BULK_OUT] |= MXC_F_USB_EP_INT_EN;
+   MXC_USB->ep[ENDPOINT_ACM_BULK_IN] &= ~MXC_F_USB_EP_INT_EN;
+}
+
+static void write_unlock( void * pv )
+{
+    if( !s_ining )
+        write_bulk_in();
+    MXC_USB->ep[ENDPOINT_ACM_BULK_IN] |= MXC_F_USB_EP_INT_EN;
+}
+
+static void read_lock( void * pv )
+{
+    MXC_USB->ep[ENDPOINT_ACM_BULK_OUT] &= ~MXC_F_USB_EP_INT_EN;
+}
+static void read_unlock( void * pv )
+{
+    MXC_USB->ep[ENDPOINT_ACM_BULK_OUT] |= MXC_F_USB_EP_INT_EN;
 }
 
 static void inline ready_bulk_out(void)
@@ -452,8 +453,8 @@ void usbuart_init( cbuf_t * p_cbuf_read, cbuf_t * p_cbuf_write )
 {
     uint8_t i;
 
-    cbuf_write_lock( p_cbuf_write, lock, unlock );
-    cbuf_read_lock( p_cbuf_read, lock, unlock );
+    cbuf_write_lock( p_cbuf_write, write_lock, write_unlock, NULL );
+    cbuf_read_lock( p_cbuf_read, read_lock, read_unlock, NULL );
 
     s_cbuf_read = p_cbuf_read;
     s_cbuf_write = p_cbuf_write;

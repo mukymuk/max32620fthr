@@ -1,7 +1,9 @@
 #ifndef __BOARD_H__
 #define __BOARD_H__
 
-#include "uartdrv.h"
+#include ".\uart.h"
+
+#define BOARD_UART_DBG  1
 
 void board_init(void);
 
