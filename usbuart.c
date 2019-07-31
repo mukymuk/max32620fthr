@@ -1,5 +1,6 @@
 #include "global.h"
 #include "usbuart.h"
+#include "board.h"
 
 #include "mxc_device.h"
 #include "pwrman_regs.h"
@@ -422,6 +423,11 @@ static void write_bulk_in( void )
     usb_ack(ENDPOINT_ACM_BULK_IN);
 }
 
+static void write_pend( void * pv )
+{
+    board_sleep();
+}
+
 static void write_lock( void * pv )
 {
    MXC_USB->ep[ENDPOINT_ACM_BULK_IN] &= ~MXC_F_USB_EP_INT_EN;
@@ -453,7 +459,7 @@ void usbuart_init( cbuf_t * p_cbuf_read, cbuf_t * p_cbuf_write )
 {
     uint8_t i;
 
-    cbuf_write_lock( p_cbuf_write, write_lock, write_unlock, NULL );
+    cbuf_write_lock( p_cbuf_write, write_lock, write_unlock, write_pend, NULL );
     cbuf_read_lock( p_cbuf_read, read_lock, read_unlock, NULL );
 
     s_cbuf_read = p_cbuf_read;
