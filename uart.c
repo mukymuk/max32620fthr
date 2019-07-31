@@ -33,21 +33,29 @@ static void read_unlock( void * pv )
 
 static void write_out( const uart_t *p_uart )
 {
-    __IO uint8_t * p_fifo = &p_uart->p_fifo->tx;
-    uint8_t *p;
-    uint32_t data_avail = cbuf_read_aquire( p_uart->p_cbuf_write, (void**)&p );
-    uint8_t tx_fifo_avail = MXC_UART_FIFO_DEPTH - (p_uart->p_mxc_uart_regs->tx_fifo_ctrl & MXC_F_UART_TX_FIFO_CTRL_FIFO_ENTRY);
-    uint32_t xfer_count = tx_fifo_avail > data_avail ? data_avail : tx_fifo_avail;
+	uint32_t data_avail;
+	uint8_t tx_fifo_avail;
+	uint32_t xfer_count;
     uint32_t i;
+    uint8_t *p;
 
-    for(i=0;i<xfer_count;i++)
-    {
-        if( p[i] & 0x80 )
-            p[i] = 0;
-        *p_fifo = p[i];
-    }
-    if( data_avail )
-        cbuf_read_release( p_uart->p_cbuf_write, xfer_count );
+    __IO uint8_t * p_fifo = &p_uart->p_fifo->tx;
+
+	do
+	{
+		data_avail = cbuf_read_aquire( p_uart->p_cbuf_write, (void**)&p );
+		tx_fifo_avail = MXC_UART_FIFO_DEPTH - (p_uart->p_mxc_uart_regs->tx_fifo_ctrl & MXC_F_UART_TX_FIFO_CTRL_FIFO_ENTRY);
+		xfer_count = tx_fifo_avail > data_avail ? data_avail : tx_fifo_avail;
+		for(i=0;i<xfer_count;i++)
+		{
+			if( p[i] & 0x80 )
+				p[i] = 0;
+			*p_fifo = p[i];
+		}
+		if( data_avail )
+			cbuf_read_release( p_uart->p_cbuf_write, xfer_count );
+	}
+	while( xfer_count );
 }
 
 static void write_lock( void * pv )
@@ -61,6 +69,7 @@ static void write_lock( void * pv )
 static void write_unlock( void * pv )
 {
     uart_t * p_uart = (uart_t*)pv;
+	write_out(p_uart);
     p_uart->p_mxc_uart_regs->inten |= MXC_F_UART_INTEN_TX_FIFO_AE;
 }
 

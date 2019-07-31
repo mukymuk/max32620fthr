@@ -14,7 +14,9 @@ uint32_t cbuf_write_string( cbuf_t * p_cbuf, const char *p_str )
 {
     uint32_t ndx = 0;
 
-    if( p_cbuf->write_lock )
+	if( !p_str )
+		return;
+	if( p_cbuf->write_lock )
         p_cbuf->lock(p_cbuf->context);
 
     while( p_str[ndx] )
@@ -48,13 +50,18 @@ uint32_t cbuf_write( cbuf_t * p_cbuf, const void *pv, uint32_t size )
     if( p_cbuf->write_lock )
         p_cbuf->lock(p_cbuf->context);
 
-    while( size && p_cbuf->free )
+    while( size )
     {
-        p_cbuf->buffer[ p_cbuf->write_ndx++ ] = p[ ndx++ ];
-        if( p_cbuf->write_ndx >= p_cbuf->size )
-           p_cbuf->write_ndx = 0;
-        p_cbuf->free--;
-        size--;
+		if( p_cbuf->free )
+		{
+			p_cbuf->buffer[p_cbuf->write_ndx++] = p[ndx++];
+			if( p_cbuf->write_ndx >= p_cbuf->size )
+			   p_cbuf->write_ndx = 0;
+			p_cbuf->free--;
+			size--;
+		}
+		else if( p_cbuf->pend )
+			p_cbuf->pend( p_cbuf->context );
     }
     if( p_cbuf->write_lock )
         p_cbuf->unlock(p_cbuf->context);
@@ -135,11 +142,9 @@ uint32_t cbuf_read_aquire( cbuf_t * p_cbuf, void ** ppv )
     // '*ppv' receives a pointer to the block
     // return number of bytes reserved
 
-    uint32_t avail;
-    if( p_cbuf->write_ndx >= p_cbuf->read_ndx )
-        avail = p_cbuf->write_ndx - p_cbuf->read_ndx;
-    else
-        avail = p_cbuf->size - p_cbuf->read_ndx;
+    uint32_t avail = p_cbuf->size - p_cbuf->free;
+    uint32_t contig = p_cbuf->size - p_cbuf->read_ndx;
+    avail = contig > avail ? avail : contig;
     if( avail )
     {
         if( !p_cbuf->write_lock )
@@ -161,6 +166,9 @@ void cbuf_read_release( cbuf_t * p_cbuf, uint32_t size )
         p_cbuf->read_ndx = 0;
         p_cbuf->write_ndx = 0;
     }
+    if( p_cbuf->read_ndx >= p_cbuf->size )
+        p_cbuf->read_ndx = 0;
+
     if( !p_cbuf->write_lock )
         p_cbuf->unlock(p_cbuf->context);
 }
