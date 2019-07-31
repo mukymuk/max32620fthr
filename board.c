@@ -6,6 +6,7 @@
 #include "tmr.h"
 #include "cbuf.h"
 #include "lp.h"
+#include "flc.h"
 
 static const gpio_cfg_t s_gpio_cfg_motor_step =
 {
@@ -54,6 +55,8 @@ void board_init(void)
     GPIO_Config( &s_gpio_cfg_motor_direction );
     GPIO_Config( &s_gpio_cfg_motor_enable );
     GPIO_Config( &s_gpio_cfg_sw1_boot );
+
+	FLC_Init();
 
     TMR_Init( MXC_TMR4, TMR_PRESCALE_DIV_2_0, &s_gpio_cfg_motor_step );
     static const tmr32_cfg_t tmr32_cfg =

@@ -15,7 +15,7 @@ uint32_t cbuf_write_string( cbuf_t * p_cbuf, const char *p_str )
     uint32_t ndx = 0;
 
 	if( !p_str )
-		return;
+		return 0;
 	if( p_cbuf->write_lock )
         p_cbuf->lock(p_cbuf->context);
 
@@ -62,6 +62,8 @@ uint32_t cbuf_write( cbuf_t * p_cbuf, const void *pv, uint32_t size )
 		}
 		else if( p_cbuf->pend )
 			p_cbuf->pend( p_cbuf->context );
+        else
+            break;
     }
     if( p_cbuf->write_lock )
         p_cbuf->unlock(p_cbuf->context);
