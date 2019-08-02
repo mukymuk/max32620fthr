@@ -107,6 +107,7 @@ void board_snd( uint8_t ndx, int32_t freq_hz )
 
         TMR32_SetCompare( MXC_TMR4, period );
         TMR32_SetDuty( MXC_TMR4, period >> 1 );
+
         TMR32_Start( MXC_TMR4 );
     }
     else
@@ -114,6 +115,11 @@ void board_snd( uint8_t ndx, int32_t freq_hz )
         TMR32_Stop( MXC_TMR4 );
         TMR32_SetCount(MXC_TMR4,1);
     }
+}
+
+void board_reset( void )
+{
+	NVIC_SystemReset();
 }
 
 void board_sleep( void )

@@ -17,6 +17,7 @@ void board_led( uint8_t ndx, board_led_t state );
 void board_snd( uint8_t ndx, int32_t freq_hz );
 void board_motor_enable( uint8_t ndx, bool enable );
 void board_sleep( void );
+void board_reset( void );
 
 #endif
 
