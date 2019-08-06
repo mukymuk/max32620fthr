@@ -1,9 +1,18 @@
 #ifndef __PS_H_INCL__
 #define __PS_H_INCL__
 
+#define PS_FLASH_BANK_SIZE	8192
 
-bool ps_read( void * pv, uint16_t magic, uint16_t size );
+typedef struct
+{
+    uint32_t    address;    // starting address of flash area (32-bit aligned)
+    uint32_t    size;       // size of flash area in 32-bit words
+    uint32_t    version;
+}
+ps_t;
 
-void ps_write( const void * pv, uint16_t magic, uint16_t size );
+uint32_t ps_locate( const ps_t * ps, void ** p_data );
+bool ps_write( const ps_t * ps, const void * pv, uint32_t size );
+
 
 #endif
